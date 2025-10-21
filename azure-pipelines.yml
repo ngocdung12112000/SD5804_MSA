@@ -8,11 +8,12 @@ pool:
 
 variables:
   dockerRegistryServiceConnection: 'bndzConnect'
+  kubernetesServiceConnection: 'AzureKubernetesServiceSC'
   containerRegistry: 'bndzacr.azurecr.io'
   frontendImageName: 'frontend'
   backendImageName: 'backend'
   imageTag: '$(Build.BuildId)'
-  kubernetesServiceConnection: 'AzureKubernetesServiceSC'
+  imageUri: $(containerRegistry)/$(backendImageName):$(imageTag)
 
 stages:
 - stage: BuildAndPush
@@ -70,6 +71,16 @@ stages:
         command: push
         tags: |
           $(imageTag)
+
+    - task: Bash@3
+      displayName: Update backend.yaml image tag
+      inputs:
+        targetType: 'inline'
+        script: |
+          sed -i "s|image:.*|image: $(imageUri)|g" Manifest-Azure/backend.yaml
+
+    - publish: Manifest-Azure/backend.yaml
+      artifact: manifest
 
 
 - stage: Deploy
